@@ -11,8 +11,8 @@ import java.math.BigDecimal;
 @Setter
 @Builder
 public class PricingDetails {
-    private  BigDecimal baseAmount;
-    private  BigDecimal discountAmount;
-    private  BigDecimal finalAmount;
+    private BigDecimal baseAmount;
+    private BigDecimal discountAmount;
+    private BigDecimal finalAmount;
 
 }

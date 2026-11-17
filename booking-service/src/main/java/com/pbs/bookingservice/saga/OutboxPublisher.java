@@ -27,14 +27,18 @@ public class OutboxPublisher {
     private static final String EVENT_TYPE_BOOKING_CONFIRMED = "BOOKING_CONFIRMED";
     private static final String EVENT_TYPE_BOOKING_EXPIRED = "BOOKING_EXPIRED";
 
-    private static final String TOPIC_BOOKING_INITIATED = "booking.initiated";
-    private static final String TOPIC_BOOKING_CONFIRMED = "booking.confirmed";
-    private static final String TOPIC_BOOKING_EXPIRED = "booking.expired";
+    private static final String TOPIC_BOOKING_INITIATED = "booking-initiated";
+    private static final String TOPIC_BOOKING_CONFIRMED = "booking-confirmed";
+    private static final String TOPIC_BOOKING_EXPIRED = "booking-expired";
 
     private static final Map<String, String> EVENT_TYPE_TO_TOPIC_MAP = java.util.Map.of(
             EVENT_TYPE_BOOKING_INITIATED, TOPIC_BOOKING_INITIATED,
             EVENT_TYPE_BOOKING_CONFIRMED, TOPIC_BOOKING_CONFIRMED,
-            EVENT_TYPE_BOOKING_EXPIRED, TOPIC_BOOKING_EXPIRED
+            EVENT_TYPE_BOOKING_EXPIRED, TOPIC_BOOKING_EXPIRED,
+            "BOOKING_CANCELLED", "booking-cancelled",
+            "PAYMENT_SUCCEEDED", "payment-succeeded",
+            "PAYMENT_DECLINED", "payment-declined",
+            "PAYMENT_REFUNDED", "payment-refunded"
     );
 
     private final OutboxRepository outboxRepository;
@@ -63,9 +67,10 @@ public class OutboxPublisher {
     private void processEvent(OutboxEvent event) {
         try {
             String topic = resolveTopic(event.getEventType());
-            kafkaTemplate.send(topic, event.getAggregateId(), event.getPayload());
+            kafkaTemplate.send(topic, event.getAggregateId(), event.getPayload()).get(10, java.util.concurrent.TimeUnit.SECONDS);
 
             event.setStatus(STATUS_SENT);
+            event.setEventStatus(OutboxEventStatus.COMPLETED);
             event.setProcessedAt(LocalDateTime.now());
 
             log.info("Successfully published event {} to topic {}", event.getEventId(), topic);

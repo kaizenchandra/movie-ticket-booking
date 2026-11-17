@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   auth-service:
     build:
@@ -11,14 +9,25 @@ services:
       - "9000:9000"
     environment:
       - SERVER_PORT=9000
+      - SMTP_HOST=${SMTP_HOST:-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_AUTH=${SMTP_AUTH:-false}
+      - SMTP_STARTTLS=${SMTP_STARTTLS:-false}
+      - AUTH_PUBLIC_BASE_URL=${AUTH_PUBLIC_BASE_URL:-http://localhost:9000}
+      - AUTH_MAIL_FROM=${AUTH_MAIL_FROM:-no-reply@movie-booking.test}
+      - AUTH_DEMO_ENABLED=${AUTH_DEMO_ENABLED:-true}
+      - AUTH_ACCESS_TTL=${AUTH_ACCESS_TTL:-15m}
+      - AUTH_REFRESH_TTL=${AUTH_REFRESH_TTL:-7d}
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/mtb
       - SPRING_DATASOURCE_USERNAME=kaizen
       - SPRING_DATASOURCE_PASSWORD=admin
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
-      - postgres-db
-      - redis
+      postgres-db:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/actuator/health" ]
       interval: 10s
@@ -41,23 +50,34 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/mtb
       - SPRING_DATASOURCE_USERNAME=kaizen
       - SPRING_DATASOURCE_PASSWORD=admin
-      - KAFKA_BOOTSTRAP_SERVERS=kafka-server:9092
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-server:9092
+      - AUTH_INTERNAL_URL=http://auth-service:9000
+      - RAZORPAY_ENABLED=${RAZORPAY_ENABLED:-false}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET:-}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       postgres-db:
-        condition: service_started
+        condition: service_healthy
       kafka-server:
-        condition: service_started
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       auth-service:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     networks:
       - app-network
 
   kafka-server:
-    image: apache/kafka:latest
+    image: apache/kafka:3.9.1
     container_name: kafka-server
     environment:
       KAFKA_NODE_ID: 1
@@ -72,16 +92,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
-    command:
-      - /bin/sh
-      - -c
-      - |
-        /etc/kafka/docker/run &
-        sleep 10
-        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 --topic booking-initiated --partitions 3 --replication-factor 1
-        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 --topic booking-confirmed --partitions 3 --replication-factor 1
-        /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 --topic booking-expired --partitions 3 --replication-factor 1
-        wait
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
 
   redis:
     image: redis:alpine
@@ -110,13 +127,20 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./db:/docker-entrypoint-initdb.d
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U kaizen -d mtb" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
+
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
     networks:
       - app-network
 

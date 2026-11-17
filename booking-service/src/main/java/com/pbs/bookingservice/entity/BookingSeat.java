@@ -22,10 +22,11 @@ public class BookingSeat implements Serializable {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "BOOKING_ID")
+    @JoinColumn(name = "BOOKING_ID", nullable = false)
     @JsonBackReference
     @JsonIgnore
     private Booking booking;
+    @Column(nullable = false)
     private Long seatInventoryId;
     private String seatNumber;
     private Double pricePaid;

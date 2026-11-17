@@ -19,13 +19,16 @@ public class SeatInventory implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Double price;
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private SeatStatus seatStatus;
+    @Column(nullable = false)
     private String seatNumber;
 
     @ManyToOne
-    @JoinColumn(name = "SHOW_ID")
+    @JoinColumn(name = "SHOW_ID", nullable = false)
     private Show show;
 
 

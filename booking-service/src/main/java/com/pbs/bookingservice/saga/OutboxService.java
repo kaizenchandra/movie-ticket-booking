@@ -37,7 +37,7 @@ public class OutboxService {
         saveBookingEvent(booking, EVENT_TYPE_BOOKING_EXPIRED);
     }
 
-    private void saveBookingEvent(Booking booking, String eventType) {
+    public void saveBookingEvent(Booking booking, String eventType) {
         OutboxEvent event = createOutboxEvent(booking, eventType);
         outboxRepository.save(event);
     }

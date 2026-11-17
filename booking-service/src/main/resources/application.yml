@@ -2,9 +2,13 @@ server:
   port: 8080
 logging:
   level:
-    org.springframework.security: TRACE
-    org.springframework.security.oauth2: TRACE
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 3
   application:
     name: booking-service
   datasource:
@@ -22,13 +26,13 @@ spring:
       connection-test-query: SELECT 1
       pool-name: booking-service-hikari-cp
   flyway:
-    enabled: false
-    baseline-on-migrate: true
+    enabled: true
+    baseline-on-migrate: false
     locations: classpath:db/migration
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -52,13 +56,14 @@ spring:
         provider:
           oidc-client:
             authorization-uri: http://localhost:9000/oauth2/authorize
-            token-uri: http://localhost:9000/oauth2/token
-            jwk-set-uri: http://localhost:9000/oauth2/jwks
-            issuer-uri: http://localhost:9000
+            token-uri: ${AUTH_INTERNAL_URL:http://localhost:9000}/oauth2/token
+            jwk-set-uri: ${AUTH_INTERNAL_URL:http://localhost:9000}/oauth2/jwks
+            user-info-uri: ${AUTH_INTERNAL_URL:http://localhost:9000}/userinfo
+            user-name-attribute: sub
       resourceserver:
         jwt:
           issuer-uri: http://localhost:9000
-          jwk-set-uri: http://localhost:9000/oauth2/jwks
+          jwk-set-uri: ${AUTH_INTERNAL_URL:http://localhost:9000}/oauth2/jwks
   data:
     redis:
       host: localhost

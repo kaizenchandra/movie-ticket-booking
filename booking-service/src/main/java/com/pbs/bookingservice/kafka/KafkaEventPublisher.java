@@ -11,7 +11,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 
 
-
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -20,15 +19,9 @@ public class KafkaEventPublisher {
     private static final String TOPIC_BOOKING_INITIATED = "booking-initiated";
     private static final String TOPIC_BOOKING_CONFIRMED = "booking-confirmed";
     private static final String TOPIC_BOOKING_EXPIRED = "booking-expired";
-
-    private enum EventType {
-        BOOKING_INITIATED,
-        BOOKING_CONFIRMED,
-        BOOKING_EXPIRED
-    }
-
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+
     public void bookingInitiated(Booking booking) {
         publishEvent(booking, EventType.BOOKING_INITIATED, TOPIC_BOOKING_INITIATED);
     }
@@ -53,5 +46,11 @@ public class KafkaEventPublisher {
         kafkaTemplate.send(topic, booking.getId().toString(), eventPayload);
 
         log.debug("Published event {} for booking {}", eventType, booking.getId());
+    }
+
+    private enum EventType {
+        BOOKING_INITIATED,
+        BOOKING_CONFIRMED,
+        BOOKING_EXPIRED
     }
 }

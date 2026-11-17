@@ -7,9 +7,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> {
-    @Query("SELECT bs FROM BookingSeat bs WHERE bs.booking.id = :bookingId")
-    BookingSeat findByBookingIdAndSeatNumber(Long bookingId, Integer seatNumber);
+    @Query("SELECT bs FROM BookingSeat bs WHERE bs.booking.id = :bookingId AND bs.seatNumber = :seatNumber")
+    BookingSeat findByBookingIdAndSeatNumber(Long bookingId, String seatNumber);
 
     @Query("SELECT bs FROM BookingSeat bs WHERE bs.booking.id = :bookingId")
-    BookingSeat findByBookingId(Long bookingId);
+    java.util.List<BookingSeat> findByBookingId(Long bookingId);
 }

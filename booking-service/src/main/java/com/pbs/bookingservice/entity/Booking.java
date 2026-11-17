@@ -52,6 +52,14 @@ public class Booking implements Serializable {
     private java.time.LocalDateTime expiryTime;
 
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(length = 100)
+    private String idempotencyKey;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(length = 64)
+    private String requestFingerprint;
+
     @JsonManagedReference
     @OneToMany(mappedBy = "booking", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<BookingSeat> bookingSeats = new ArrayList<>();

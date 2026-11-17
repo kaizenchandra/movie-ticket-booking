@@ -11,7 +11,17 @@ import java.util.Optional;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    @Query("SELECT b FROM Booking b WHERE b.expiryTime <= :now")
+    Optional<Booking> findByUserIdAndIdempotencyKey(Long userId, String idempotencyKey);
+
+    @Query(value = "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(:requestKey, 0))", nativeQuery = true)
+    Integer lockBookingRequest(String requestKey);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :id")
+    java.util.Optional<Booking> findLockedById(Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.status = com.pbs.bookingservice.entity.enums.BookingStatus.PENDING_PAYMENT AND b.expiryTime <= :now")
     List<Booking> findExpiredBookings(LocalDateTime now);
 
 

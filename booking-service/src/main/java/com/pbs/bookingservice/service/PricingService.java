@@ -41,7 +41,7 @@ public class PricingService {
         log.info("Final pricing calculated - Base: {}, Discount: {}, Final: {}",
                 basePrice, discount, finalPrice);
 
-        return new PricingDetails(basePrice, discount, finalPrice.subtract(discount));
+        return new PricingDetails(basePrice, discount, finalPrice);
     }
 
     private BigDecimal calculateBasePrice(List<SeatInventory> seats) {

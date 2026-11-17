@@ -12,6 +12,7 @@ public interface OutboxRepository extends JpaRepository<OutboxEvent, Long> {
     @Query("SELECT o FROM OutboxEvent o WHERE o.eventId = :eventId")
     OutboxEvent findByEventId(String eventId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM OutboxEvent o WHERE o.eventStatus = 'PENDING'")
     List<OutboxEvent> findPendingEvents(PageRequest of);
 }

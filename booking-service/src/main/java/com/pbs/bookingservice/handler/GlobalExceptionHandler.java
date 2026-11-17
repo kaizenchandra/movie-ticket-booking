@@ -10,10 +10,15 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
+    @ExceptionHandler(BookingConflictException.class)
+    public ProblemDetail bookingConflict(BookingConflictException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler(BookingException.class)
     public ProblemDetail handleBusinessException(BookingException e) {
         return ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
+                HttpStatus.BAD_REQUEST,
                 e.getMessage()
         );
     }
@@ -45,9 +50,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(SeatUnavailableException.class)
     public ProblemDetail handleSeatUnavailableException(SeatUnavailableException e) {
         return ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
+                HttpStatus.CONFLICT,
                 e.getMessage()
         );
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ProblemDetail gatewayError(org.springframework.web.server.ResponseStatusException e) {
+        return ProblemDetail.forStatusAndDetail(e.getStatusCode(), e.getReason() == null ? "Gateway request failed" : e.getReason());
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -55,7 +65,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return
                 ProblemDetail.forStatusAndDetail(
                         HttpStatus.INTERNAL_SERVER_ERROR,
-                        e.getMessage()
+                        "An unexpected error occurred"
                 );
     }
 }

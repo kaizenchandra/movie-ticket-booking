@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta content="width=device-width,initial-scale=1" name="viewport">
+<title>Booking payment</title>
+<style>body {
+    font: 18px system-ui;
+    max-width: 40rem;
+    margin: 4rem auto;
+    padding: 1rem
+}
+
+button, input {
+    font: inherit;
+    padding: .6rem;
+    margin: .4rem 0
+}
+
+#status {
+    white-space: pre-wrap
+}</style>
+<h1>Pay for your booking</h1>
+<p>Razorpay test mode. No real money is charged.</p>
+<label>Booking ID <input id="booking" min="1" type="number"></label><br>
+<button id="pay">Pay with Razorpay</button>
+<button id="cancel">Cancel booking</button>
+<p id="status" role="status"></p>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    const field = document.getElementById('booking'), status = document.getElementById('status'),
+        pay = document.getElementById('pay');
+    field.value = new URLSearchParams(location.search).get('bookingId') || '';
+
+    function path(suffix) {
+        if (!/^\d+$/.test(field.value)) throw Error('Enter a valid booking ID');
+        return '/api/v1/booking/' + field.value + suffix
+    }
+
+    async function call(url, method, body, key) {
+        const r = await fetch(url, {
+            method,
+            headers: {'Content-Type': 'application/json', ...(key ? {'Idempotency-Key': key} : {})},
+            body: body ? JSON.stringify(body) : undefined
+        });
+        const text = await r.text();
+        let value;
+        try {
+            value = text ? JSON.parse(text) : {}
+        } catch {
+            throw Error('Sign in before paying')
+        }
+        ;
+        if (!r.ok) throw Error(value.detail || 'Request failed');
+        return value
+    }
+
+    let checkoutActive = false;
+
+    function setBusy(busy) {
+        checkoutActive = busy;
+        pay.disabled = busy;
+        field.disabled = busy;
+        document.getElementById('cancel').disabled = busy
+    }
+
+    function attemptKey(id) {
+        const name = 'razorpay-order:' + id;
+        let key = sessionStorage.getItem(name);
+        if (!key) {
+            key = crypto.randomUUID();
+            sessionStorage.setItem(name, key)
+        }
+        return key
+    }
+
+    pay.onclick = async () => {
+        if (checkoutActive) return;
+        let checkout;
+        try {
+            const bookingPath = path(''); // Capture the booking before any asynchronous work.
+            setBusy(true);
+            const order = await call(bookingPath + '/razorpay/order', 'POST', null, attemptKey(field.value));
+            checkout = new Razorpay({
+                key: order.keyId,
+                order_id: order.orderId,
+                amount: order.amount,
+                currency: order.currency,
+                name: 'Movie Ticket Booking',
+                handler: async result => {
+                    try {
+                        const p = await call(bookingPath + '/razorpay/verify', 'POST', {
+                            orderId: result.razorpay_order_id,
+                            paymentId: result.razorpay_payment_id,
+                            signature: result.razorpay_signature
+                        });
+                        status.textContent = 'Payment status: ' + p.status + '. Check your booking for confirmation or refund status.';
+                    } catch (e) {
+                        status.textContent = e.message + ' Payment status will be reconciled automatically. Check your booking before retrying.'
+                    } finally {
+                        setBusy(false)
+                    }
+                },
+                modal: {ondismiss: () => setBusy(false)}
+            });
+            checkout.on('payment.failed', () => {
+                status.textContent = 'Payment attempt failed. Retry inside Checkout or close it to try again.'
+            });
+            checkout.open();
+        } catch (e) {
+            status.textContent = e.message;
+            setBusy(false)
+        }
+    };
+    document.getElementById('cancel').onclick = async () => {
+        try {
+            await call(path('/cancel'), 'PUT');
+            status.textContent = 'Booking cancelled. Any captured payment refund is queued; check the refunds API for status.'
+        } catch (e) {
+            status.textContent = e.message
+        }
+    };
+</script>
+</html>

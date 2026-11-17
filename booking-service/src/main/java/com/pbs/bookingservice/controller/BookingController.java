@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -24,8 +23,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Tag(name = "Booking API", description = "API for booking operations")
 public class BookingController {
-    
+
     private final BookingService bookingService;
+    private final com.pbs.bookingservice.service.CurrentUser currentUser;
 
     @Operation(
             summary = "Create a new booking",
@@ -40,11 +40,12 @@ public class BookingController {
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingResponse> createBooking(
             @Valid @RequestBody BookingRequest request,
-            @AuthenticationPrincipal Authentication user) {
-        request.setUserId(1L); // dummy user id for testing
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            Authentication user) {
+        request.setUserId(currentUser.id(user)); // dummy user id for testing
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(bookingService.initiateBooking(request));
+                .body(bookingService.initiateBooking(request, key));
     }
 
     @Operation(
@@ -60,9 +61,9 @@ public class BookingController {
     @GetMapping(value = "/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingResponse> getBooking(
             @PathVariable Long bookingId,
-            @AuthenticationPrincipal Authentication user) {
+            Authentication user) {
 
-        return ResponseEntity.ok(bookingService.getBookingById(bookingId, 1L)); // dummy user id for testing
+        return ResponseEntity.ok(bookingService.getBookingById(bookingId, currentUser.id(user))); // dummy user id for testing
     }
 
     @Operation(
@@ -78,8 +79,8 @@ public class BookingController {
     @PutMapping(value = "/{bookingId}/confirm", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> confirmBooking(
             @PathVariable Long bookingId,
-            @AuthenticationPrincipal Authentication user) {
-        bookingService.confirmBooking(bookingId);
+            Authentication user) {
+        bookingService.confirmBooking(bookingId, currentUser.id(user));
         return ResponseEntity.ok().build();
     }
 
@@ -92,10 +93,10 @@ public class BookingController {
             @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing authentication"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping(value = "{userId}/bookings", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<java.util.List<BookingResponse>> getAllBookingsForUser(@PathVariable Long userId,
-            @AuthenticationPrincipal Authentication user) {
-        return ResponseEntity.ok(bookingService.getAllBookingsByUserId(1L)); // dummy user id for testing
+    @GetMapping(value = "/me/bookings", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<java.util.List<BookingResponse>> getAllBookingsForUser(
+            Authentication user) {
+        return ResponseEntity.ok(bookingService.getAllBookingsByUserId(currentUser.id(user))); // dummy user id for testing
     }
 
 }

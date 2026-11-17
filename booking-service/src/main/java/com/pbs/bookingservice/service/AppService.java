@@ -17,16 +17,17 @@ public class AppService {
 
     @Autowired
     private OAuth2AuthorizedClientService authorizedClientService;
+
     @PreAuthorize("hasAuthority('SCOPE_profile')")
     public String getJwtToken() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         var accessToken = getAccessToken(authentication);
         var refreshToken = getRefreshToken(authentication);
         return String.format("Access Token = %s <br><br><br> Refresh Token = %s",
-                accessToken.getTokenValue(), refreshToken.getTokenValue());
+                accessToken == null ? "Unavailable" : accessToken.getTokenValue(), refreshToken == null ? "Unavailable" : refreshToken.getTokenValue());
     }
 
-    public OAuth2AccessToken getAccessToken (Authentication authentication) {
+    public OAuth2AccessToken getAccessToken(Authentication authentication) {
         var authorizedClient = this.getAuthorizedClient(authentication);
         if (authorizedClient != null) {
             OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
@@ -36,6 +37,7 @@ public class AppService {
         }
         return null;
     }
+
     public OAuth2RefreshToken getRefreshToken(Authentication authentication) {
         var authorizedClient = this.getAuthorizedClient(authentication);
         if (authorizedClient != null) {

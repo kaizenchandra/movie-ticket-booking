@@ -12,20 +12,16 @@ import java.util.List;
 @Getter
 
 public class BookingRequest {
-    @NotNull(message = "User ID is required")
+    @NotEmpty(message = "Seat numbers cannot be empty")
+    @Size(min = 1, max = 10, message = "Number of seats must be between 1 and 10")
+    List<String> seatNumbers;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Long userId;
-
     private OfferDiscountCode offerCode;
-
     @NotNull(message = "Show ID is required")
     private Long showId;
-
     @NotNull(message = "Seat count is required")
     @Min(value = 1, message = "Seat count must be at least 1")
     @Max(value = 10, message = "Seat count cannot exceed 10")
     private Integer seatCount;
-
-    @NotEmpty(message = "Seat numbers cannot be empty")
-    @Size(min = 1, max = 10, message = "Number of seats must be between 1 and 10")
-    List<String> seatNumbers;
 }

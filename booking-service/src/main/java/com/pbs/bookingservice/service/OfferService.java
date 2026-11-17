@@ -4,7 +4,6 @@ import com.pbs.bookingservice.common.req.OfferDiscountCode;
 import com.pbs.bookingservice.entity.SeatInventory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -18,7 +17,7 @@ public class OfferService {
     private static final BigDecimal THIRD_TICKET_DISCOUNT_PERCENTAGE = BigDecimal.valueOf(0.5);
 
     public BigDecimal applyOffer(OfferDiscountCode offerCode, List<SeatInventory> seats) {
-        if (!StringUtils.hasText(offerCode.name())) {
+        if (offerCode == null) {
             return BigDecimal.ZERO;
         }
         log.debug("Applying offer code: {} for {} seats", offerCode, seats != null ? seats.size() : 0);

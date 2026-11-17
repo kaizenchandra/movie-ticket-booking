@@ -1,0 +1,18 @@
+# Test-only override. These credentials belong solely to the local HTTP fixture.
+services:
+  booking-service:
+    environment:
+      RAZORPAY_ENABLED: "true"
+      RAZORPAY_KEY_ID: rzp_test_contract
+      RAZORPAY_KEY_SECRET: contract-secret
+      RAZORPAY_WEBHOOK_SECRET: contract-webhook
+      RAZORPAY_BASE_URL: http://razorpay-mock:9001/v1
+  razorpay-mock:
+    image: python:3.12-alpine
+    command: [ "python", "/fixture/razorpay_mock.py" ]
+    volumes:
+      - ./scripts/razorpay_mock.py:/fixture/razorpay_mock.py:ro
+    ports:
+      - "127.0.0.1:18090:9001"
+    networks:
+      - app-network
